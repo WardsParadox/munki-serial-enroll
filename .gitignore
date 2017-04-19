@@ -1,1 +1,8 @@
-.DS_Store
+*.pkg
+.DS*
+build
+dist
+*.spec
+*.pyc
+*.app
+*.platypus

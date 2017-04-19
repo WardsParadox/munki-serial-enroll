@@ -1,62 +1,63 @@
 <?php
+namespace CFPropertyList;
+// require cfpropertylist
+require dirname(__FILE__) . '/CFPropertyList/classes/CFPropertyList/CFPropertyList.php';
 
-if((isset($_GET["serial"])) AND (isset($_GET["displayname"])) AND (isset($_GET["template"]))){
+function writemanifest($outputplist,$inputschool,$inputdisplayname,$inputuser,$inputnotes){
+  $plist = new CFPropertyList();
+  $plist->add($dict = new CFDictionary());
+  $plistnew = $outputplist;
+  echo "Writing new plist: " . $plistnew . PHP_EOL;
 
-    // Get the variables passed by the enroll script
-    $serial = $_GET["serial"];
-    $displayname = $_GET["displayname"];
-    $template = $_GET["template"];
+  // Add Default Catalog
+  $dict->add('catalogs', $array = new CFArray());
+  $array->add(new CFString('Main'));
 
-    // Specify the template source to be copied as an individual template
-    if($template == "desktop"){
-    
-            $source="../manifests/desktop_template";
+  $dict->add('included_manifests', $array = new CFArray());
+  $array->add(new CFString($inputschool));
 
-        } elseif($template == "laptop") {
-            
-            $source="../manifests/laptop_template";
-        
-        } else {
-        
-            $source="";
-        
-        }
+  $dict->add('display_name', new CFString($inputdisplayname));
 
-    // Double-check there is a source to copy from
-    if(($source!="") AND (file_exists($source))){
+  $dict->add('user', new CFString($inputuser));
 
-        // Create destination
-        $destination="../manifests/" . $serial;
+  $dict->add('notes', new CFString($inputnotes));
 
-        // Check if manifest already exists for this machine
-        if ( file_exists($destination) ){
-            
-                // The manifest already exists. Nothing to do.
-                echo "Computer manifest " . $serial . " already exists.";
-        
-            } else {
-            
-                // Create the manifest
-                echo "Computer manifest does not exist. Will create " . $destination;
-                copy($source, $destination);
-            
-                // Add in the proper display name with a quick find/replace
-                shell_exec('/usr/bin/sed -i.bak ' . '"s/DISPLAYNAMETOREPLACE/' . $displayname . '/g" ' . $destination); 
-                // Delete the backup file
-                unlink("../manifests/" . $serial . ".bak");
+  $plist->save($plistnew,CFPropertyList::FORMAT_XML,$formatted=true);
+}
+//print_r($_GET); //dignosing which variables make it to server
+if((isset($_GET["serial"])) AND (isset($_GET["displayname"])) AND (isset($_GET["school"])) AND (isset($_GET["notes"])) AND (isset($_GET["user"]))){
 
-            }
+$serial = $_GET["serial"];
+$school = $_GET["school"];
+$displayname = $_GET["displayname"];
+$user = $_GET["user"];
+$notes = $_GET["notes"];
 
-        // End checking for source manifest existence
-        } else {
-        
-            echo "Cannot create manifest. The source template to copy from does not exist.";
-        
-        }
+$destination = '/path/to/munki/repo/manifests' . $serial;
+//$destination = dirname(__FILE__) . '/testmanifest';
 
-    // End checking for GET variables
-    } else {
-        echo "Cannot create manifest. Missing one or more variables. Need serial number, display name, and template";
+    if (file_exists($destination)){
+
+  // Check for override key
+      if (isset($_GET['override']) AND filter_var($_GET['override'],FILTER_VALIDATE_BOOLEAN)){
+          echo "Removing old manifest, and recreating: " . $destination . PHP_EOL;
+          unlink($destination);
+          writemanifest($destination,$school,$displayname,$user,$notes);
+          exit(0);
     }
+      else{
+          echo "Manifest exists! Override not set!" . PHP_EOL;
+          exit(1);
+        }
+    }
+    else{
+      writemanifest($destination,$school,$displayname,$user,$notes);
+      exit(0);
+    }
+  }
+else{
+  echo "Missing Variable(s). Please send all variables!" . PHP_EOL;
+  exit(2);
+  }
 
 ?>

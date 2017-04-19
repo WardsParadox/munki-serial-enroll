@@ -1,0 +1,4 @@
+[submodule "munki-enroll/CFPropertyList"]
+	path = munki-enroll/CFPropertyList
+	url = https://github.com/stormsweeper/CFPropertyList
+	branch = patch-1
